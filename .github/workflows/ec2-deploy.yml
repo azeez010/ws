@@ -1,0 +1,52 @@
+name: Push-to-EC2
+
+# Trigger deployment only on push to dev branch
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    name: Deploy to EC2 on dev branch push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the files
+        uses: actions/checkout@v2
+
+      - name: Deploy to Server 1
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SCRIPT_BEFORE: |
+            if [ -d "${{ secrets.DEV_TARGET_DIR }}" ]; then
+              echo "DEV_TARGET_DIR exists, removing it..."
+              rm -rf "${{ secrets.DEV_TARGET_DIR }}"
+            else
+              echo "DEV_TARGET_DIR does not exist."
+            fi
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEV_EC2_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.DEV_HOST_DNS }}
+          REMOTE_USER: ${{ secrets.DEV_USERNAME }}
+          TARGET: ${{ secrets.DEV_TARGET_DIR }}
+
+      - name: Run Django server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEV_HOST_DNS }}
+          username: ${{ secrets.DEV_USERNAME }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          script: |
+            export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            export AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}
+            export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
+  
+            export AWS_STORAGE_S3_ENV=${{ secrets.DEV_AWS_STORAGE_S3_ENV }}
+            export AWS_S3_FIREBASE=${{ secrets.DEV_AWS_S3_FIREBASE }}
+            export AWS_S3_CLOUDFRONT=${{ secrets.DEV_AWS_S3_CLOUDFRONT }}
+            
+            
+            cd ${{ secrets.DEV_TARGET_DIR }}
+            sh new_devops/deploy/deploy.sh
