@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@types/node": "^20.12.11",
+    "@types/systeminformation": "^3.54.1",
+    "systeminformation": "^4.34.23",
     "typescript": "^5.4.5",
     "ws": "^8.17.0"
   }
